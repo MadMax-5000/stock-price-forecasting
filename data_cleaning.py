@@ -12,9 +12,9 @@ df = pd.read_csv("apple_stock_data.csv", parse_dates=["Date"])
 # checking missing values or Nan
 # ==============================
 
-# print(df.isna().sum()) # gives count of missing values per column
-# print(df.isna().any()) # gives the boolean value of column
-# print(df.isna().sum().sum()) # gives the total number of missing values
+print(df.isna().sum()) # gives count of missing values per column
+print(df.isna().any()) # gives the boolean value of column
+print(df.isna().sum().sum()) # gives the total number of missing values
 
 # ==============================
 # correcting data types
@@ -37,17 +37,13 @@ mismatches = {col : (df[col].dtype, expected)
               for col, expected in expected_types.items()
                 if str(df[col].dtype) != expected}
 
-# if not mismatches:
-#     print("All column data types match the exact types ")
-# else: 
-#     print("Mismated data found at ")
-#     for col, (actual, expected) in mismatches.items():
-#         print(f" - {col} : expected {expected}, got {actual}")
+if not mismatches:
+     print("All column data types match the exact types ")
+else: 
+     print("Mismated data found at ")
+     for col, (actual, expected) in mismatches.items():
+        print(f" - {col} : expected {expected}, got {actual}")
 
-# =========================
-# checking for duplicates
-# =========================
-# print(df.duplicated().sum())
 
 
 # =========================
@@ -77,17 +73,17 @@ for col in ["Open", "High", "Low", "Close"]:
 
 outlier_rows = df[df[['Open_outlier','High_outlier','Low_outlier','Close_outlier']].any(axis=1)]
 # checking missing values
-# print(df.isnull().sum())
+print(df.isnull().sum())
 
 # checking duplicates
-# print(df.duplicated(subset=["Date"]).sum())
+print(df.duplicated(subset=["Date"]).sum())
 
 # checking inconsistent rows 
 inconsistent = df[(df['Low'] > df['Open']) | (df['High'] < df['Open']) |
                   (df['Low'] > df['Close']) | (df['High'] < df['Close'])]
 print(inconsistent)
 
-""" 
+ 
 plt.figure(figsize=(12,6))
 plt.plot(df['Date'], df['Close'], label='Close Price')
 plt.scatter(
@@ -101,10 +97,10 @@ plt.ylabel('Close Price')
 plt.title('Apple Stock with Rolling-IQR Outliers Highlighted')
 plt.legend()
 plt.show()
- """
+
 
 # plotting the IQR outliers and the apple stock graph over the years
-""" plt.figure(figsize=(12,6))
+plt.figure(figsize=(12,6))
 plt.plot(df['Date'], df['Close'], label='Close Price')
 plt.scatter(outliers_col['Date'], outliers_col['Close'], color='red', label='Outliers')
 plt.xlabel('Date')
@@ -112,4 +108,3 @@ plt.ylabel('Close Price')
 plt.title('Stock Prices with Outliers Highlighted')
 plt.legend()
 plt.show()
- """
