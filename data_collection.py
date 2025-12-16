@@ -1,6 +1,6 @@
 # =================================================
 # the main goal of this project is to answer this question
-# Cpicklean I predict whether Apple’s stock will go up or down tomorrow and explain the factors driving it?
+# Can I predict whether Apple’s stock will go up or down tomorrow and explain the factors driving it?
 
 import yfinance as yf
 import pandas as pd
