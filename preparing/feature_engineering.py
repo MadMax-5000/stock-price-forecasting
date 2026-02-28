@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from data_cleaning import clean_data_no_outliers as source_df
+from preparing.data_cleaning import clean_data_no_outliers as source_df
 
 def add_features(dataframe):
     df = dataframe.copy()   
