@@ -2,7 +2,7 @@
 
 A full-stack machine learning web application for predicting stock price movements (up or down). Built with Python for the backend ML pipeline and Next.js for an interactive frontend.
 
-![Stock Predictor Web App](images/main%20image%20web%20app.jpeg)
+![Stock Predictor Web App](images/main-web-app.jpeg)
 
 ---
 
