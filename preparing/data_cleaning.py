@@ -1,119 +1,296 @@
-# this file is for cleaning data from the CSV file data/apple_stock_data.csv
-# =========================================
-# Missing or Null Values == Correct Data Types == Duplicates == Sort by Date == Create Additional Features 
-# Outliers == Set Date as Index
+"""
+Data cleaning module for stock price data.
+
+This module handles:
+- Missing or Null Values
+- Correct Data Types
+- Duplicates
+- Sort by Date
+- Outlier Detection (IQR and Rolling IQR methods)
+- Set Date as Index
+
+Author: madmax
+Version: 1.0
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import TypedDict
+
 import pandas as pd
-import matplotlib.pyplot as plt
 
-df = pd.read_csv("data/apple_stock_data.csv", parse_dates=["Date"])
 
-# ==============================
-# checking missing values or Nan
-# ==============================
-missing_values_count = df.isna().sum()
-missing_values_bool = df.isna().any()
-total_missing = df.isna().sum().sum()
+class MissingValuesInfo(TypedDict):
+    """Type definition for missing values information."""
 
-# ==============================
-# correcting data types
-# ==============================
-expected_types = {
-    "Date" : "datetime64[ns]",
-    "Open" : "float64",
-    "High" : "float64",
-    "Low" : "float64",
-    "Close" : "float64",
-    "Volume" : "int64"
+    count: pd.Series
+    has_missing: bool
+    total_missing: int
+
+
+class OutlierInfo(TypedDict):
+    """Type definition for outlier information."""
+
+    static_outliers: pd.DataFrame
+    rolling_outliers: pd.DataFrame
+    inconsistent_rows: pd.DataFrame
+
+
+@dataclass
+class DataQualityReport:
+    """Data quality report containing validation results."""
+
+    missing_values: MissingValuesInfo
+    type_mismatches: dict[str, tuple[str, str]]
+    duplicate_count: int
+    outlier_count: int
+    inconsistent_count: int
+    is_clean: bool
+
+
+PRICE_COLUMNS: list[str] = ["Open", "High", "Low", "Close"]
+EXPECTED_TYPES: dict[str, str] = {
+    "Date": "datetime64[ns]",
+    "Open": "float64",
+    "High": "float64",
+    "Low": "float64",
+    "Close": "float64",
+    "Volume": "int64",
 }
-mismatches = {col : (df[col].dtype, expected)
-              for col, expected in expected_types.items()
-                if str(df[col].dtype) != expected}
 
-# =========================
-# detecting outliers
-# =========================
-# using the IQR (Interquartile Range) method
-price_cols = ["Open", "High", "Low", "Close"]
-Q1 = df[price_cols].quantile(0.25)
-Q3 = df[price_cols].quantile(0.75)
-IQR = Q3 - Q1
-outliers = (df[price_cols] < (Q1 - 1.5*IQR)) | (df[price_cols] > (Q3 + 1.5*IQR))
-outliers_row = df[outliers.any(axis=1)]
 
-# using the rolling IQR
-window = 252 # ~1 trading year
-for col in ["Open", "High", "Low", "Close"]:
-    rolling_Q1 = df[col].rolling(window).quantile(0.25)
-    rolling_Q3 = df[col].rolling(window).quantile(0.75)
-    rolling_IQR = rolling_Q3 - rolling_Q1
-    outliers_col = (df[col] < rolling_Q1 - 1.5*rolling_IQR) | (df[col] > rolling_Q3 + 1.5*rolling_IQR)
-    df[col + '_outlier'] = outliers_col
+def get_missing_values_info(df: pd.DataFrame) -> MissingValuesInfo:
+    """
+    Analyze missing values in the DataFrame.
 
-outlier_rows = df[df[['Open_outlier','High_outlier','Low_outlier','Close_outlier']].any(axis=1)]
+    Args:
+        df: Input DataFrame to analyze.
 
-# checking inconsistent rows 
-inconsistent = df[(df['Low'] > df['Open']) | (df['High'] < df['Open']) |
-                  (df['Low'] > df['Close']) | (df['High'] < df['Close'])]
+    Returns:
+        Dictionary containing:
+            - count: Series with missing value counts per column
+            - has_missing: Boolean indicating if any missing values exist
+            - total_missing: Total count of missing values
+    """
+    return {
+        "count": df.isna().sum(),
+        "has_missing": bool(df.isna().any().any()),
+        "total_missing": int(df.isna().sum().sum()),
+    }
 
-# Create cleaned datasets
-clean_data_with_outliers = df.copy()
-clean_data_with_outliers = clean_data_with_outliers.drop_duplicates(subset=["Date"]).reset_index(drop=True)
-clean_data_with_outliers.set_index('Date', inplace=True)
 
-clean_data_no_outliers = df[~df[['Open_outlier','High_outlier','Low_outlier','Close_outlier']].any(axis=1)].copy()
-clean_data_no_outliers = clean_data_no_outliers.drop_duplicates(subset=["Date"]).reset_index(drop=True)
-clean_data_no_outliers.set_index('Date', inplace=True)
-# Create cleaned datasets
-clean_data_with_outliers = df.copy()
-clean_data_with_outliers = clean_data_with_outliers.drop_duplicates(subset=["Date"]).reset_index(drop=True)
-clean_data_with_outliers.set_index('Date', inplace=True)
-# Drop outlier flag columns
-clean_data_with_outliers = clean_data_with_outliers.drop(columns=['Open_outlier', 'High_outlier', 'Low_outlier', 'Close_outlier'])
+def validate_data_types(df: pd.DataFrame) -> dict[str, tuple[str, str]]:
+    """
+    Validate that columns have expected data types.
 
-clean_data_no_outliers = df[~df[['Open_outlier','High_outlier','Low_outlier','Close_outlier']].any(axis=1)].copy()
-clean_data_no_outliers = clean_data_no_outliers.drop_duplicates(subset=["Date"]).reset_index(drop=True)
-clean_data_no_outliers.set_index('Date', inplace=True)
-# Drop outlier flag columns
-clean_data_no_outliers = clean_data_no_outliers.drop(columns=['Open_outlier', 'High_outlier', 'Low_outlier', 'Close_outlier'])
-# ==============================
-# Code that should only run when this file is executed directly
-# ==============================
-if __name__ == "__main__":
-    print(missing_values_count)
-    print(missing_values_bool)
-    print(total_missing)
-    
-    if not mismatches:
-        print("All column data types match the exact types ")
-    else: 
-        print("Mismatched data found at ")
-        for col, (actual, expected) in mismatches.items():
-            print(f" - {col} : expected {expected}, got {actual}")
-    
-    print(df.isnull().sum())
-    print(df.duplicated(subset=["Date"]).sum())
-    print(inconsistent)
-    
-    # Plotting
-    plt.figure(figsize=(12,6))
-    plt.plot(df['Date'], df['Close'], label='Close Price')
-    plt.scatter(
-        df.loc[df['Close_outlier'], 'Date'],
-        df.loc[df['Close_outlier'], 'Close'],
-        color='red',
-        label='Outliers'
+    Args:
+        df: Input DataFrame to validate.
+
+    Returns:
+        Dictionary mapping column names to (actual_type, expected_type) tuples
+        for mismatched columns only.
+    """
+    mismatches: dict[str, tuple[str, str]] = {}
+    for col, expected in EXPECTED_TYPES.items():
+        actual = str(df[col].dtype)
+        if actual != expected:
+            mismatches[col] = (actual, expected)
+    return mismatches
+
+
+def detect_outliers_iqr(df: pd.DataFrame, columns: list[str] | None = None) -> pd.DataFrame:
+    """
+    Detect outliers using the Interquartile Range (IQR) method.
+
+    Args:
+        df: Input DataFrame.
+        columns: List of columns to check for outliers. Defaults to PRICE_COLUMNS.
+
+    Returns:
+        DataFrame containing only outlier rows.
+    """
+    if columns is None:
+        columns = PRICE_COLUMNS
+
+    Q1 = df[columns].quantile(0.25)
+    Q3 = df[columns].quantile(0.75)
+    IQR = Q3 - Q1
+
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+
+    outliers = (df[columns] < lower_bound) | (df[columns] > upper_bound)
+    return df[outliers.any(axis=1)]
+
+
+def detect_outliers_rolling_iqr(
+    df: pd.DataFrame,
+    columns: list[str] | None = None,
+    window: int = 252,
+) -> pd.DataFrame:
+    """
+    Detect outliers using a rolling Interquartile Range (IQR) method.
+
+    Uses approximately 1 trading year (252 days) as the window size.
+
+    Args:
+        df: Input DataFrame.
+        columns: List of columns to check for outliers. Defaults to PRICE_COLUMNS.
+        window: Rolling window size in days. Defaults to 252 (~1 trading year).
+
+    Returns:
+        DataFrame with outlier flag columns added.
+    """
+    if columns is None:
+        columns = PRICE_COLUMNS
+
+    result_df = df.copy()
+
+    for col in columns:
+        rolling_Q1 = df[col].rolling(window).quantile(0.25)
+        rolling_Q3 = df[col].rolling(window).quantile(0.75)
+        rolling_IQR = rolling_Q3 - rolling_Q1
+
+        outliers_col = (
+            (df[col] < rolling_Q1 - 1.5 * rolling_IQR)
+            | (df[col] > rolling_Q3 + 1.5 * rolling_IQR)
+        )
+        result_df[f"{col}_outlier"] = outliers_col
+
+    return result_df
+
+
+def get_outlier_info(df: pd.DataFrame) -> OutlierInfo:
+    """
+    Get comprehensive outlier information using both static and rolling IQR methods.
+
+    Args:
+        df: Input DataFrame.
+
+    Returns:
+        Dictionary containing static outliers, rolling outliers, and inconsistent rows.
+    """
+    df_with_flags = detect_outliers_rolling_iqr(df)
+
+    outlier_cols = [f"{col}_outlier" for col in PRICE_COLUMNS]
+    rolling_outliers = df_with_flags[df_with_flags[outlier_cols].any(axis=1)]
+
+    static_outliers = detect_outliers_iqr(df)
+
+    inconsistent = df[
+        (df["Low"] > df["Open"])
+        | (df["High"] < df["Open"])
+        | (df["Low"] > df["Close"])
+        | (df["High"] < df["Close"])
+    ]
+
+    return {
+        "static_outliers": static_outliers,
+        "rolling_outliers": rolling_outliers,
+        "inconsistent_rows": inconsistent,
+    }
+
+
+def get_data_quality_report(df: pd.DataFrame) -> DataQualityReport:
+    """
+    Generate a comprehensive data quality report.
+
+    Args:
+        df: Input DataFrame to analyze.
+
+    Returns:
+        DataQualityReport object containing all validation results.
+    """
+    missing_info = get_missing_values_info(df)
+    type_mismatches = validate_data_types(df)
+    outlier_info = get_outlier_info(df)
+    outlier_cols = [f"{col}_outlier" for col in PRICE_COLUMNS]
+
+    return DataQualityReport(
+        missing_values=missing_info,
+        type_mismatches=type_mismatches,
+        duplicate_count=df.duplicated(subset=["Date"]).sum(),
+        outlier_count=len(outlier_info["rolling_outliers"]),
+        inconsistent_count=len(outlier_info["inconsistent_rows"]),
+        is_clean=(
+            not missing_info["has_missing"]
+            and len(type_mismatches) == 0
+            and len(outlier_info["inconsistent_rows"]) == 0
+        ),
     )
-    plt.xlabel('Date')
-    plt.ylabel('Close Price')
-    plt.title('Apple Stock with Rolling-IQR Outliers Highlighted')
-    plt.legend()
-    plt.show()
-    
-    plt.figure(figsize=(12,6))
-    plt.plot(df['Date'], df['Close'], label='Close Price')
-    plt.scatter(outliers_row['Date'], outliers_row['Close'], color='red', label='Outliers')
-    plt.xlabel('Date')
-    plt.ylabel('Close Price')
-    plt.title('Stock Prices with Outliers Highlighted')
-    plt.legend()
-    plt.show()
+
+
+def clean_data(
+    df: pd.DataFrame,
+    remove_outliers: bool = True,
+    inplace: bool = False,
+) -> pd.DataFrame:
+    """
+    Clean the stock data DataFrame.
+
+    Args:
+        df: Input DataFrame to clean.
+        remove_outliers: Whether to remove outlier rows. Defaults to True.
+        inplace: Whether to modify the DataFrame in place. Defaults to False.
+
+    Returns:
+        Cleaned DataFrame with Date as index.
+    """
+    if not inplace:
+        df = df.copy()
+
+    df_with_flags = detect_outliers_rolling_iqr(df)
+    outlier_cols = [f"{col}_outlier" for col in PRICE_COLUMNS]
+
+    if remove_outliers:
+        df = df_with_flags[~df_with_flags[outlier_cols].any(axis=1)].copy()
+    else:
+        df = df_with_flags.drop(columns=outlier_cols)
+
+    df = df.drop_duplicates(subset=["Date"]).reset_index(drop=True)
+    df.set_index("Date", inplace=True)
+
+    return df
+
+
+def load_and_clean_data(
+    filepath: str = "data/apple_stock_data.csv",
+    remove_outliers: bool = True,
+) -> pd.DataFrame:
+    """
+    Load stock data from CSV and apply cleaning pipeline.
+
+    Args:
+        filepath: Path to the CSV file.
+        remove_outliers: Whether to remove outlier rows. Defaults to True.
+
+    Returns:
+        Cleaned DataFrame with Date as index.
+    """
+    df = pd.read_csv(filepath, parse_dates=["Date"])
+    return clean_data(df, remove_outliers=remove_outliers)
+
+
+if __name__ == "__main__":
+    df = pd.read_csv("data/apple_stock_data.csv", parse_dates=["Date"])
+
+    report = get_data_quality_report(df)
+
+    print("Missing Values:")
+    print(report.missing_values["count"])
+    print(f"\nTotal missing: {report.missing_values['total_missing']}")
+
+    print("\nData Type Mismatches:")
+    if report.type_mismatches:
+        for col, (actual, expected) in report.type_mismatches.items():
+            print(f" - {col}: expected {expected}, got {actual}")
+    else:
+        print("All columns have correct data types.")
+
+    print(f"\nDuplicates: {report.duplicate_count}")
+
+    print("\nOutlier Detection (Rolling IQR):")
+    print(f"Outlier rows: {report.outlier_count}")
+
+    print(f"\nInconsistent rows (OHLC violations): {report.inconsistent_count}")
