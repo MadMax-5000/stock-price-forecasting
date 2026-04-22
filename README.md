@@ -2,7 +2,7 @@
 
 A full-stack machine learning web application for predicting stock price movements (up or down). Built with Python for the backend ML pipeline and Next.js for an interactive frontend.
 
-![Stock Predictor Web App](docs/docs/images/main-web-app.jpeg)
+![Stock Predictor Web App](https://raw.githubusercontent.com/MadMax-5000/stock-price-forecasting/main/https://raw.githubusercontent.com/MadMax-5000/stock-price-forecasting/main/docs/images/main-web-app.jpeg)
 
 ---
 
@@ -122,7 +122,7 @@ stock-prices/
 │   │   └── lib/
 │   │       └── utils.ts       # API utilities
 │   └── package.json
-└── docs/images/            # Documentation images
+└── https://raw.githubusercontent.com/MadMax-5000/stock-price-forecasting/main/docs/images/            # Documentation images
     └── main image web app.jpeg
 ```
 
@@ -481,7 +481,7 @@ This section provides detailed explanations of all generated visualization image
 
 ### A.1 Price History Chart
 
-![Price History](docs/images/fig_historique_prix.png)
+![Price History](https://raw.githubusercontent.com/MadMax-5000/stock-price-forecasting/main/https://raw.githubusercontent.com/MadMax-5000/stock-price-forecasting/main/docs/images/fig_historique_prix.png)
 
 The **Price History Chart** displays the historical closing prices of the selected stock over the specified date range. This is the primary input for all analysis and prediction tasks.
 
@@ -493,7 +493,7 @@ The **Price History Chart** displays the historical closing prices of the select
 
 ### A.2 Candlestick Chart
 
-![Candlestick Chart](docs/images/fig_candlestick.png)
+![Candlestick Chart](https://raw.githubusercontent.com/MadMax-5000/stock-price-forecasting/main/docs/images/fig_candlestick.png)
 
 The **Candlestick Chart** provides a more detailed view of daily price action showing Open, High, Low, and Close (OHLC) for each trading day.
 
@@ -507,7 +507,7 @@ The **Candlestick Chart** provides a more detailed view of daily price action sh
 
 ### A.3 Technical Indicators
 
-![Technical Indicators](docs/images/fig_indicateurs_techniques.png)
+![Technical Indicators](https://raw.githubusercontent.com/MadMax-5000/stock-price-forecasting/main/docs/images/fig_indicateurs_techniques.png)
 
 The **Technical Indicators** chart displays three panels:
 
@@ -531,7 +531,7 @@ The **Technical Indicators** chart displays three panels:
 
 ### A.4 Returns Distribution
 
-![Returns Distribution](docs/images/fig_rendements_distribution.png)
+![Returns Distribution](https://raw.githubusercontent.com/MadMax-5000/stock-price-forecasting/main/docs/images/fig_rendements_distribution.png)
 
 The **Returns Distribution** histogram shows the daily percentage returns distribution.
 
@@ -549,7 +549,7 @@ The **Returns Distribution** histogram shows the daily percentage returns distri
 
 ### A.5 Walk-Forward Validation
 
-![Walk-Forward Validation](docs/images/fig_walkforward.png)
+![Walk-Forward Validation](https://raw.githubusercontent.com/MadMax-5000/stock-price-forecasting/main/docs/images/fig_walkforward.png)
 
 The **Walk-Forward Validation** visualization explains the cross-validation strategy.
 
@@ -563,7 +563,7 @@ The **Walk-Forward Validation** visualization explains the cross-validation stra
 
 ### A.6 Confusion Matrix
 
-![Confusion Matrix](docs/images/fig_matrice_confusion.png)
+![Confusion Matrix](https://raw.githubusercontent.com/MadMax-5000/stock-price-forecasting/main/docs/images/fig_matrice_confusion.png)
 
 The **Confusion Matrix** shows model prediction accuracy:
 
@@ -580,7 +580,7 @@ The **Confusion Matrix** shows model prediction accuracy:
 
 ### A.7 Model Comparison
 
-![Model Comparison](docs/images/fig_comparaison_modeles.png)
+![Model Comparison](https://raw.githubusercontent.com/MadMax-5000/stock-price-forecasting/main/docs/images/fig_comparaison_modeles.png)
 
 The **Model Comparison** bar chart ranks all models by precision score.
 
@@ -595,7 +595,7 @@ The **Model Comparison** bar chart ranks all models by precision score.
 
 ### A.8 Feature Importance
 
-![Feature Importance](docs/images/fig_feature_importance.png)
+![Feature Importance](https://raw.githubusercontent.com/MadMax-5000/stock-price-forecasting/main/docs/images/fig_feature_importance.png)
 
 The **Feature Importance** chart shows which technical indicators contribute most to predictions.
 
@@ -612,7 +612,7 @@ The **Feature Importance** chart shows which technical indicators contribute mos
 
 ### A.9 Predictions Chart
 
-![Predictions](docs/images/fig_predictions.png)
+![Predictions](https://raw.githubusercontent.com/MadMax-5000/stock-price-forecasting/main/docs/images/fig_predictions.png)
 
 The **Predictions Chart** shows future forecast with confidence bands.
 
@@ -627,7 +627,7 @@ The **Predictions Chart** shows future forecast with confidence bands.
 
 ### A.10 Statistics Summary
 
-![Statistics](docs/images/fig_statistiques.png)
+![Statistics](https://raw.githubusercontent.com/MadMax-5000/stock-price-forecasting/main/docs/images/fig_statistiques.png)
 
 The **Statistics Summary** provides numerical metrics for model evaluation.
 
