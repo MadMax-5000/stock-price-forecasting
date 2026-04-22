@@ -8,120 +8,88 @@ Author: madmax
 Version: 1.0
 """
 
+from __future__ import annotations
+
+from typing import Any
+
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, precision_score, recall_score
+
+from models.utils import engineer_features, print_benchmark_table, run_backtest
 from preparing.feature_engineering import get_processed_data
 
-# ==========================================
-# CONFIGURATION
-# ==========================================
-
-MODEL_PARAMS = {
-    "n_estimators": 600,
-    "min_samples_split": 45,
-    "max_depth": 22,
-    "min_samples_leaf": 18,
+MODEL_PARAMS: dict[str, Any] = {
+    "n_estimators": 200,
+    "min_samples_split": 30,
+    "max_depth": 10,
+    "min_samples_leaf": 15,
     "max_features": "sqrt",
     "class_weight": "balanced",
     "random_state": 1,
     "n_jobs": -1,
 }
 
-TREND_HORIZONS = [2, 5, 60, 250, 1000]
-DECISION_THRESHOLD = 0.51
-BACKTEST_STEP = 250
-TRAIN_SPLIT_RATIO = 0.7
-
-# ==========================================
-# LOGIC
-# ==========================================
-
-def engineer_features(df: pd.DataFrame, horizons: list[int]) -> tuple[pd.DataFrame, list[str]]:
-    """Generates rolling trend and ratio features."""
-    predictors = []
-    
-    for horizon in horizons:
-        rolling_avg = df.rolling(horizon).mean()
-        
-        ratio_col = f"Close_Ratio_{horizon}"
-        df[ratio_col] = df["Close"] / rolling_avg["Close"]
-        
-        trend_col = f"Trend_{horizon}"
-        df[trend_col] = df.shift(1).rolling(horizon).sum()["Target"]
-        
-        predictors.extend([ratio_col, trend_col])
-        
-    return df.dropna(), predictors
+TREND_HORIZONS: list[int] = [5, 60]
+DECISION_THRESHOLD: float = 0.51
+BACKTEST_STEP: int = 250
+TRAIN_SPLIT_RATIO: float = 0.7
 
 
-def predict_signal(train: pd.DataFrame, test: pd.DataFrame, predictors: list[str], model: RandomForestClassifier) -> pd.DataFrame:
-    """Trains model and returns predictions based on optimized threshold."""
-    model.fit(train[predictors], train["Target"])
-    
-    # Get probabilities and apply threshold
-    probs = model.predict_proba(test[predictors])[:, 1]
-    preds = (probs >= DECISION_THRESHOLD).astype(int)
-    
-    return pd.concat([
-        test["Target"],
-        pd.Series(preds, index=test.index, name="Predictions")
-    ], axis=1)
+def create_model(**kwargs: Any) -> RandomForestClassifier:
+    """
+    Create a RandomForestClassifier with given or default parameters.
+
+    Args:
+        **kwargs: Model parameters to override defaults.
+
+    Returns:
+        Configured RandomForestClassifier instance.
+    """
+    params = MODEL_PARAMS.copy()
+    params.update(kwargs)
+    return RandomForestClassifier(**params)
 
 
-def run_backtest(data: pd.DataFrame, model: RandomForestClassifier, predictors: list[str], start: int, step: int) -> pd.DataFrame:
-    """Executes walk-forward validation."""
-    all_predictions = []
-    
-    for i in range(start, data.shape[0], step):
-        train = data.iloc[0:i].copy()
-        test = data.iloc[i : (i + step)].copy()
-        
-        batch_preds = predict_signal(train, test, predictors, model)
-        all_predictions.append(batch_preds)
-    
-    return pd.concat(all_predictions)
+def train_and_evaluate(
+    raw_df: pd.DataFrame | None = None,
+    horizons: list[int] | None = None,
+    threshold: float = DECISION_THRESHOLD,
+    step: int = BACKTEST_STEP,
+    train_ratio: float = TRAIN_SPLIT_RATIO,
+    show_extended: bool = False,
+) -> tuple[pd.DataFrame, RandomForestClassifier]:
+    """
+    Train Random Forest model and run backtest.
 
+    Args:
+        raw_df: Input DataFrame. If None, loads from get_processed_data().
+        horizons: Trend horizons for feature engineering.
+        threshold: Decision threshold for predictions.
+        step: Backtest window size.
+        train_ratio: Train/test split ratio.
+        show_extended: Whether to show extended metrics.
 
-def print_benchmark_table(predictions: pd.DataFrame, model_name: str = "Random Forest") -> None:
-    """Calculates metrics and prints the benchmark report."""
-    y_true = predictions["Target"]
-    y_pred = predictions["Predictions"]
+    Returns:
+        Tuple of (predictions DataFrame, trained model).
+    """
+    if raw_df is None:
+        raw_df = get_processed_data()
 
-    acc = accuracy_score(y_true, y_pred)
-    prec = precision_score(y_true, y_pred, zero_division=0)
-    rec = recall_score(y_true, y_pred, zero_division=0)
-    trades = int(y_pred.sum())
-
-    header_fmt = "| {:<15} | {:<10} | {:<11} | {:<10} | {:<12} |"
-    row_fmt    = "| {:<15} | {:<10.4f} | {:<11.4f} | {:<10.4f} | {:<12} |"
-    separator  = "+" + "-"*17 + "+" + "-"*12 + "+" + "-"*13 + "+" + "-"*12 + "+" + "-"*14 + "+"
-
-    print("\nBENCHMARK REPORT")
-    print(separator)
-    print(header_fmt.format("Model", "Accuracy", "Precision", "Recall", "Total Trades"))
-    print(separator)
-    print(row_fmt.format(model_name, acc, prec, rec, trades))
-    print(separator + "\n")
-
-# ==========================================
-# EXECUTION
-# ==========================================
-
-if __name__ == "__main__":
-    # 1. Load Data
-    raw_df = get_processed_data()
     raw_df = raw_df.sort_index()
 
-    # 2. Feature Engineering
-    df, features = engineer_features(raw_df, TREND_HORIZONS)
+    if horizons is None:
+        horizons = TREND_HORIZONS
 
-    # 3. Initialize Model
-    rf_model = RandomForestClassifier(**MODEL_PARAMS)
+    df, features = engineer_features(raw_df, horizons)
+    model = create_model()
 
-    # 4. Backtesting
-    start_index = int(len(df) * TRAIN_SPLIT_RATIO)
-    results = run_backtest(df, rf_model, features, start=start_index, step=BACKTEST_STEP)
+    start_index = int(len(df) * train_ratio)
+    results = run_backtest(df, model, features, start=start_index, step=step, threshold=threshold)
 
-    # 5. Reporting
-    print_benchmark_table(results, "Random Forest")
+    print_benchmark_table(results, "Random Forest", show_extended=show_extended)
+
+    return results, model
+
+
+if __name__ == "__main__":
+    train_and_evaluate()

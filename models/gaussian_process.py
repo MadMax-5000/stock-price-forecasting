@@ -8,116 +8,134 @@ Author: madmax
 Version: 1.0
 """
 
+from __future__ import annotations
+
+from typing import Any
+
 import pandas as pd
 from sklearn.gaussian_process import GaussianProcessClassifier
 from sklearn.gaussian_process.kernels import RBF
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import accuracy_score, precision_score, recall_score
+
+from models.utils import engineer_features, print_benchmark_table
 from preparing.feature_engineering import get_processed_data
 
-# ==========================================
-# CONFIGURATION
-# ==========================================
-
-MODEL_PARAMS = {
+MODEL_PARAMS: dict[str, Any] = {
     "kernel": RBF(length_scale=1.0),
     "n_restarts_optimizer": 0,
     "max_iter_predict": 200,
     "random_state": 1,
 }
 
-TREND_HORIZONS = [2, 5, 60, 250, 1000]
-DECISION_THRESHOLD = 0.51
-BACKTEST_STEP = 250
-TRAIN_SPLIT_RATIO = 0.7
-
-# ==========================================
-# LOGIC
-# ==========================================
-
-def engineer_features(df: pd.DataFrame, horizons: list[int]) -> tuple[pd.DataFrame, list[str]]:
-    """Generates rolling trend and ratio features."""
-    predictors = []
-    
-    for horizon in horizons:
-        rolling_avg = df.rolling(horizon).mean()
-        
-        ratio_col = f"Close_Ratio_{horizon}"
-        df[ratio_col] = df["Close"] / rolling_avg["Close"]
-        
-        trend_col = f"Trend_{horizon}"
-        df[trend_col] = df.shift(1).rolling(horizon).sum()["Target"]
-        
-        predictors.extend([ratio_col, trend_col])
-        
-    return df.dropna(), predictors
+TREND_HORIZONS: list[int] = [2, 5, 60, 250, 1000]
+DECISION_THRESHOLD: float = 0.51
+BACKTEST_STEP: int = 250
+TRAIN_SPLIT_RATIO: float = 0.7
 
 
-def predict_signal(train: pd.DataFrame, test: pd.DataFrame, predictors: list[str], model: GaussianProcessClassifier, scaler: StandardScaler) -> pd.DataFrame:
-    """Trains model and returns predictions based on optimized threshold."""
-    train_scaled = scaler.fit_transform(train[predictors])
-    test_scaled = scaler.transform(test[predictors])
-    
-    model.fit(train_scaled, train["Target"])
-    
-    probs = model.predict_proba(test_scaled)[:, 1]
-    preds = (probs >= DECISION_THRESHOLD).astype(int)
-    
-    return pd.concat([
-        test["Target"],
-        pd.Series(preds, index=test.index, name="Predictions")
-    ], axis=1)
+def create_model(**kwargs: Any) -> GaussianProcessClassifier:
+    """
+    Create a GaussianProcessClassifier with given or default parameters.
+
+    Args:
+        **kwargs: Model parameters to override defaults.
+
+    Returns:
+        Configured GaussianProcessClassifier instance.
+    """
+    params = MODEL_PARAMS.copy()
+    params.update(kwargs)
+    return GaussianProcessClassifier(**params)
 
 
-def run_backtest(data: pd.DataFrame, model: GaussianProcessClassifier, predictors: list[str], start: int, step: int) -> pd.DataFrame:
-    """Executes walk-forward validation."""
-    all_predictions = []
+def run_backtest_gp(
+    data: pd.DataFrame,
+    model: GaussianProcessClassifier,
+    predictors: list[str],
+    start: int,
+    step: int,
+    threshold: float = DECISION_THRESHOLD,
+) -> pd.DataFrame:
+    """
+    Execute walk-forward validation for Gaussian Process with scaling.
+
+    Args:
+        data: Feature-engineered DataFrame with Target column.
+        model: GaussianProcessClassifier model instance.
+        predictors: List of feature column names.
+        start: Starting index for testing.
+        step: Number of samples per test window.
+        threshold: Decision threshold for predictions.
+
+    Returns:
+        DataFrame with Target and Predictions columns.
+    """
+    all_predictions: list[pd.DataFrame] = []
     scaler = StandardScaler()
-    
+
     for i in range(start, data.shape[0], step):
         train = data.iloc[0:i].copy()
         test = data.iloc[i : (i + step)].copy()
-        
-        batch_preds = predict_signal(train, test, predictors, model, scaler)
+
+        train_scaled = scaler.fit_transform(train[predictors])
+        test_scaled = scaler.transform(test[predictors])
+
+        model.fit(train_scaled, train["Target"])
+
+        probs = model.predict_proba(test_scaled)[:, 1]
+        preds = (probs >= threshold).astype(int)
+
+        batch_preds = pd.concat([
+            test["Target"],
+            pd.Series(preds, index=test.index, name="Predictions"),
+        ], axis=1)
         all_predictions.append(batch_preds)
-    
+
     return pd.concat(all_predictions)
 
 
-def print_benchmark_table(predictions: pd.DataFrame, model_name: str = "Gaussian Process") -> None:
-    """Calculates metrics and prints the benchmark report."""
-    y_true = predictions["Target"]
-    y_pred = predictions["Predictions"]
+def train_and_evaluate(
+    raw_df: pd.DataFrame | None = None,
+    horizons: list[int] | None = None,
+    threshold: float = DECISION_THRESHOLD,
+    step: int = BACKTEST_STEP,
+    train_ratio: float = TRAIN_SPLIT_RATIO,
+    show_extended: bool = False,
+) -> tuple[pd.DataFrame, GaussianProcessClassifier]:
+    """
+    Train Gaussian Process model and run backtest.
 
-    acc = accuracy_score(y_true, y_pred)
-    prec = precision_score(y_true, y_pred, zero_division=0)
-    rec = recall_score(y_true, y_pred, zero_division=0)
-    trades = int(y_pred.sum())
+    Args:
+        raw_df: Input DataFrame. If None, loads from get_processed_data().
+        horizons: Trend horizons for feature engineering.
+        threshold: Decision threshold for predictions.
+        step: Backtest window size.
+        train_ratio: Train/test split ratio.
+        show_extended: Whether to show extended metrics.
 
-    header_fmt = "| {:<15} | {:<10} | {:<11} | {:<10} | {:<12} |"
-    row_fmt    = "| {:<15} | {:<10.4f} | {:<11.4f} | {:<10.4f} | {:<12} |"
-    separator  = "+" + "-"*17 + "+" + "-"*12 + "+" + "-"*13 + "+" + "-"*12 + "+" + "-"*14 + "+"
+    Returns:
+        Tuple of (predictions DataFrame, trained model).
+    """
+    if raw_df is None:
+        raw_df = get_processed_data()
 
-    print("\nBENCHMARK REPORT")
-    print(separator)
-    print(header_fmt.format("Model", "Accuracy", "Precision", "Recall", "Total Trades"))
-    print(separator)
-    print(row_fmt.format(model_name, acc, prec, rec, trades))
-    print(separator + "\n")
-
-# ==========================================
-# EXECUTION
-# ==========================================
-
-if __name__ == "__main__":
-    raw_df = get_processed_data()
     raw_df = raw_df.sort_index()
 
-    df, features = engineer_features(raw_df, TREND_HORIZONS)
+    if horizons is None:
+        horizons = TREND_HORIZONS
 
-    gp_model = GaussianProcessClassifier(**MODEL_PARAMS)
+    df, features = engineer_features(raw_df, horizons)
+    model = create_model()
 
-    start_index = int(len(df) * TRAIN_SPLIT_RATIO)
-    results = run_backtest(df, gp_model, features, start=start_index, step=BACKTEST_STEP)
+    start_index = int(len(df) * train_ratio)
+    results = run_backtest_gp(
+        df, model, features, start=start_index, step=step, threshold=threshold
+    )
 
-    print_benchmark_table(results, "Gaussian Process")
+    print_benchmark_table(results, "Gaussian Process", show_extended=show_extended)
+
+    return results, model
+
+
+if __name__ == "__main__":
+    train_and_evaluate()
