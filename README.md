@@ -23,7 +23,18 @@ A full-stack machine learning web application for predicting stock price movemen
 13. [API Endpoints](#api-endpoints)
 14. [Project File Descriptions](#project-file-descriptions)
 15. [Data Files](#data-files)
-16. [License](#license)
+16. [Annex: Visualizations](#annex-visualizations)
+    - [A.1 Price History Chart](#a1-price-history-chart)
+    - [A.2 Candlestick Chart](#a2-candlestick-chart)
+    - [A.3 Technical Indicators](#a3-technical-indicators)
+    - [A.4 Returns Distribution](#a4-returns-distribution)
+    - [A.5 Walk-Forward Validation](#a5-walk-forward-validation)
+    - [A.6 Confusion Matrix](#a6-confusion-matrix)
+    - [A.7 Model Comparison](#a7-model-comparison)
+    - [A.8 Feature Importance](#a8-feature-importance)
+    - [A.9 Predictions Chart](#a9-predictions-chart)
+    - [A.10 Statistics Summary](#a10-statistics-summary)
+17. [License](#license)
 
 ---
 
@@ -461,6 +472,175 @@ data/
 ```
 
 Each CSV contains columns: `Date`, `Open`, `High`, `Low`, `Close`, `Volume`
+
+---
+
+## Annex: Visualizations
+
+This section provides detailed explanations of all generated visualization images. These charts are automatically created by the `visualization.py` and `generate_images.py` modules to help analyze stock data and model performance.
+
+### A.1 Price History Chart
+
+![Price History](images/fig_historique_prix.png)
+
+The **Price History Chart** displays the historical closing prices of the selected stock over the specified date range. This is the primary input for all analysis and prediction tasks.
+
+- **X-axis**: Date (daily observations)
+- **Y-axis**: Closing price in USD
+- **Use**: Identifies long-term trends, support/resistance levels, and major price movements
+
+---
+
+### A.2 Candlestick Chart
+
+![Candlestick Chart](images/fig_candlestick.png)
+
+The **Candlestick Chart** provides a more detailed view of daily price action showing Open, High, Low, and Close (OHLC) for each trading day.
+
+- **Green candle**: Day closed higher than opened (bullish)
+- **Red candle**: Day closed lower than opened (bearish)
+- **Wick (thin line)**: High and Low for the day
+- **Body (thick section)**: Open and Close
+- **Use**: Identifies daily volatility, reversal patterns, and market sentiment
+
+---
+
+### A.3 Technical Indicators
+
+![Technical Indicators](images/fig_indicateurs_techniques.png)
+
+The **Technical Indicators** chart displays three panels:
+
+1. **Top Panel - Price with Bollinger Bands**:
+   - Blue line: Closing price
+   - Dashed lines: Upper and Lower Bollinger Bands (20-day SMA ± 2 standard deviations)
+   - Use: Identifies overbought/oversold conditions and volatility
+
+2. **Middle Panel - RSI (Relative Strength Index)**:
+   - Purple line: 14-day RSI
+   - Red dashed line at 70: Overbought threshold
+   - Green dashed line at 30: Oversold threshold
+   - Use: Momentum oscillator for trend strength
+
+3. **Bottom Panel - MACD**:
+   - Orange line: MACD (12-day EMA - 26-day EMA)
+   - Green line: Signal line (9-day EMA of MACD)
+   - Use: Trend direction and momentum changes
+
+---
+
+### A.4 Returns Distribution
+
+![Returns Distribution](images/fig_rendements_distribution.png)
+
+The **Returns Distribution** histogram shows the daily percentage returns distribution.
+
+- **X-axis**: Daily return (as decimal)
+- **Y-axis**: Frequency (number of days)
+- **Red vertical line**: Mean return
+- **Black vertical line**: Zero (break-even)
+- **Use**: Understands risk profile, volatility, and tail risks
+- **Interpretation**: 
+  - Narrow distribution = stable stock
+  - Wide distribution = volatile stock
+  - Left-skewed = more extreme negative returns
+
+---
+
+### A.5 Walk-Forward Validation
+
+![Walk-Forward Validation](images/fig_walkforward.png)
+
+The **Walk-Forward Validation** visualization explains the cross-validation strategy.
+
+- **Training Window**: Sequential blocks of historical data used for training
+- **Testing Window**: Next block of data used for validation
+- **Sliding Step**: 250 days (configurable)
+- **Use**: Prevents look-ahead bias and simulates real trading conditions
+- **Why Important**: Unlike traditional cross-validation, walk-forward maintains temporal order
+
+---
+
+### A.6 Confusion Matrix
+
+![Confusion Matrix](images/fig_matrice_confusion.png)
+
+The **Confusion Matrix** shows model prediction accuracy:
+
+- **Rows**: Actual class (UP/DOWN)
+- **Columns**: Predicted class (UP/DOWN)
+- **Cells**:
+  - True Positive (TP): Correctly predicted UP
+  - True Negative (TN): Correctly predicted DOWN
+  - False Positive (FP): Predicted UP but went DOWN (Type I error)
+  - False Negative (FN): Predicted DOWN but went UP (Type II error)
+- **Use**: Identifies model bias and error patterns
+
+---
+
+### A.7 Model Comparison
+
+![Model Comparison](images/fig_comparaison_modeles.png)
+
+The **Model Comparison** bar chart ranks all models by precision score.
+
+- **X-axis**: Precision score (0.0 to 1.0)
+- **Y-axis**: Model names
+- **Orange bar**: Best performing model
+- **Blue bars**: Other models
+- **Use**: Identifies best model for the selected stock
+- **Metrics Shown**: Precision, Accuracy, Recall, F1 Score
+
+---
+
+### A.8 Feature Importance
+
+![Feature Importance](images/fig_feature_importance.png)
+
+The **Feature Importance** chart shows which technical indicators contribute most to predictions.
+
+- **X-axis**: Importance score
+- **Y-axis**: Feature names
+- **Use**: Understands which indicators drive predictions
+- **Common Important Features**:
+  - RSI (momentum)
+  - MACD (trend)
+  - Volatility
+  - Close ratios (5-day, 60-day)
+
+---
+
+### A.9 Predictions Chart
+
+![Predictions](images/fig_predictions.png)
+
+The **Predictions Chart** shows future forecast with confidence bands.
+
+- **Blue line**: Historical prices
+- **Orange line**: Predicted future prices
+- **Dashed orange line**: Connection between historical and predicted
+- **Shaded area**: Confidence bands (upper/lower bounds based on volatility)
+- **Diamond markers**: Predicted price points
+- **Use**: Visualizes forecast and uncertainty range
+
+---
+
+### A.10 Statistics Summary
+
+![Statistics](images/fig_statistiques.png)
+
+The **Statistics Summary** provides numerical metrics for model evaluation.
+
+- **Best Model**: Selected model name
+- **Precision**: Ratio of correct UP predictions
+- **Accuracy**: Overall correct predictions
+- **Recall**: Ratio of actual UP days predicted
+- **F1 Score**: Harmonic mean of precision and recall
+- **Total Trades**: Number of predicted UP signals
+
+---
+
+*Back to [Table of Contents](#table-of-contents)*
 
 ---
 
