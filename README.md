@@ -2,7 +2,7 @@
 
 A full-stack machine learning web application for predicting stock price movements (up or down). Built with Python for the backend ML pipeline and Next.js for an interactive frontend.
 
-![Stock Predictor Web App](https://raw.githubusercontent.com/MadMax-5000/stock-price-forecasting/main/docs/images/main-web-app.jpeg)
+![Stock Predictor Web App](docs/images/main-web-app.jpeg)
 
 ---
 
@@ -481,7 +481,7 @@ This section provides detailed explanations of all generated visualization image
 
 ### A.1 Price History Chart
 
-![Price History](https://raw.githubusercontent.com/MadMax-5000/stock-price-forecasting/main/docs/images/fig_historique_prix.png)
+![Price History](docs/images/fig_historique_prix.png)
 
 The **Price History Chart** displays the historical closing prices of the selected stock over the specified date range. This is the primary input for all analysis and prediction tasks.
 
